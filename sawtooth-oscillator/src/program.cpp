@@ -18,7 +18,7 @@ int GenerateSawtooth(
     {
         *buffer++ = *buffer++ = value;
         
-        value += (2.0f / data[0]);
+        value += (2.0f / data[0]); // we go from -1.0f to 1.0f
         
         if (value >= 1.0)
         {
