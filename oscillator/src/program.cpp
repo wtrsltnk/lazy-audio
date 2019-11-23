@@ -1,9 +1,7 @@
 #include <iostream>
 #include "RtAudio.h"
 
-#define PULSE_WIDTH 256
-
-int GenerateAudio(
+int GenerateSquareWave(
     void *outputBuffer,
     void *inputBuffer,
     unsigned int bufferFrameCount,
@@ -12,18 +10,15 @@ int GenerateAudio(
     void *userData)
 {
     double *buffer = reinterpret_cast<double *>(outputBuffer);
+    double *data = reinterpret_cast<double *>(userData);
 
     static int frameCounter = 0;
 
-    double val = 0.0;
     for (unsigned int i = 0; i < bufferFrameCount; i++)
     {
-        val = frameCounter >= 0 ? 1.0 : -1.0;
+        *buffer++ = *buffer++ = frameCounter >= 0 ? data[1] : -data[1];
         
-        *buffer++ = val;
-        *buffer++ = val;
-        
-        if (++frameCounter > PULSE_WIDTH)
+        if (++frameCounter > (data[0] / 2.0))
         {
             frameCounter = -frameCounter;
         }
@@ -51,9 +46,10 @@ int main(
         return 0;
     }
     
+    double frequency = 73.42;
     unsigned int sampleRate = 44100;
     unsigned int bufferFrames = 256;
-    double data[2];
+    double data[2] = { sampleRate / frequency, 1.0 };
     
     try
     {
@@ -63,7 +59,7 @@ int main(
             RTAUDIO_FLOAT64,
             sampleRate,
             &bufferFrames,
-            &GenerateAudio,
+            &GenerateSquareWave,
             reinterpret_cast<void *>(&data));
             
         dac.startStream();
