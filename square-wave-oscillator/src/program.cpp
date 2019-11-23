@@ -31,6 +31,10 @@ int main(
     int argc,
     char *argv[])
 {
+    double frequency = 73.42;
+    unsigned int sampleRate = 44100;
+    unsigned int bufferFrames = 256;
+    
     RtAudio dac;
     RtAudio::StreamParameters parameters;
     
@@ -46,9 +50,6 @@ int main(
         return 0;
     }
     
-    double frequency = 73.42;
-    unsigned int sampleRate = 44100;
-    unsigned int bufferFrames = 256;
     double data[2] = { sampleRate / frequency, 1.0 };
     
     try

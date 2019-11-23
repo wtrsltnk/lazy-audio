@@ -1,7 +1,11 @@
 #include <iostream>
+#include <conio.h>
 #include "RtAudio.h"
+#include "envelope.h"
 
-int GenerateSawtooth(
+static Envelope envelope;
+
+int GenerateSquareWave(
     void *outputBuffer,
     void *inputBuffer,
     unsigned int bufferFrameCount,
@@ -12,30 +16,33 @@ int GenerateSawtooth(
     double *buffer = reinterpret_cast<double *>(outputBuffer);
     double *data = reinterpret_cast<double *>(userData);
 
-    static double value = -data[1];
+    static int frameCounter = 0;
+
+    envelope.Tick(streamTime);
     
     for (unsigned int i = 0; i < bufferFrameCount; i++)
     {
-        *buffer++ = *buffer++ = value;
+        *buffer++ = *buffer++ = frameCounter >= 0 ? envelope.Value() : -envelope.Value();
         
-        value += (2.0f / data[0]); // we go from -1.0f to 1.0f
-        
-        if (value >= 1.0)
+        if (++frameCounter > (data[0] / 2.0))
         {
-            value = -1.0f;
+            frameCounter = -frameCounter;
         }
     }
     
     return 0;
 }
 
-int main(
-    int argc,
-    char *argv[])
+int main()
 {
     double frequency = 73.42;
     unsigned int sampleRate = 44100;
     unsigned int bufferFrames = 256;
+    
+    envelope.attackTime = 0.5;
+    envelope.decayTime = 0.1;
+    envelope.sustainLevel = 0.8;
+    envelope.releaseTime = 1.0;
     
     RtAudio dac;
     RtAudio::StreamParameters parameters;
@@ -52,8 +59,7 @@ int main(
         return 0;
     }
     
-    double data[2] = { sampleRate / frequency, 1.0 };
-    
+    double data[2] = { sampleRate / frequency, 0.0 };
     try
     {
         dac.openStream(
@@ -62,7 +68,7 @@ int main(
             RTAUDIO_FLOAT64,
             sampleRate,
             &bufferFrames,
-            &GenerateSawtooth,
+            &GenerateSquareWave,
             reinterpret_cast<void *>(&data));
             
         dac.startStream();
@@ -73,9 +79,19 @@ int main(
         return 0;
     }
 
-    char input;
-    std::cout << "\nPlaying ... press <enter> to quit.\n";
-    std::cin.get(input);
+    std::cout << "\nPress <spacebar> to toggle play ... press <q> to quit.\n";
+    
+    while (getch() != 'q')
+    {
+        if (envelope.IsOn())
+        {
+            envelope.NoteOff();
+        }
+        else
+        {
+            envelope.NoteOn();
+        }
+    }
     
     try
     {
